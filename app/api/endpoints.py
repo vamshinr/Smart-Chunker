@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from app.core.chunking import SmartChunker
-from app.core.utils import extract_text_from_pdf, export_chunks_to_jsonl
+from app.core.utils import extract_text_and_elements_from_pdf, export_chunks_to_jsonl
 import uuid
 import os
 
@@ -20,6 +20,7 @@ class Chunk(BaseModel):
     text: str
     start_char: int
     end_char: int
+    metadata: Optional[dict] = None
 
 class ChunkResponse(BaseModel):
     num_chunks: int
@@ -32,14 +33,14 @@ def chunk_document(request: ChunkRequest):
         raise HTTPException(status_code=400, detail="Text input is required.")
 
     chunker = SmartChunker(method=request.method, chunk_size=request.chunk_size, overlap=request.overlap)
-    chunks = chunker.chunk_text(request.text)
+    chunks = chunker.chunk_text(request.text, visual_elements=[])
     export_file = None
     if request.export:
         export_file = f"data/export/chunks_{uuid.uuid4().hex}.jsonl"
         export_chunks_to_jsonl(chunks, export_file)
     return ChunkResponse(
         num_chunks=len(chunks),
-        chunks=[Chunk(id=i, text=c['text'], start_char=c['start'], end_char=c['end']) for i, c in enumerate(chunks)],
+        chunks=[Chunk(id=i, text=c['text'], start_char=c['start'], end_char=c['end'], metadata=c.get('metadata')) for i, c in enumerate(chunks)],
         export_file=export_file
     )
 
@@ -52,15 +53,17 @@ def chunk_file(
     export: bool = Form(False)
 ):
     contents = file.file.read()
-    text = extract_text_from_pdf(contents)
+    parsed = extract_text_and_elements_from_pdf(contents)
+    text = parsed["text"]
+    visual_elements = parsed["elements"]
     chunker = SmartChunker(method=method, chunk_size=chunk_size, overlap=overlap)
-    chunks = chunker.chunk_text(text)
+    chunks = chunker.chunk_text(text, visual_elements=visual_elements)
     export_file = None
     if export:
         export_file = f"data/export/chunks_{uuid.uuid4().hex}.jsonl"
         export_chunks_to_jsonl(chunks, export_file)
     return ChunkResponse(
         num_chunks=len(chunks),
-        chunks=[Chunk(id=i, text=c['text'], start_char=c['start'], end_char=c['end']) for i, c in enumerate(chunks)],
+        chunks=[Chunk(id=i, text=c['text'], start_char=c['start'], end_char=c['end'], metadata=c.get('metadata')) for i, c in enumerate(chunks)],
         export_file=export_file
     )
