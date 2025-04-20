@@ -9,7 +9,7 @@ It supports novel and classical chunking strategies — including an adaptive se
 
 Upload PDF or plain text
 Export chunks in `.jsonl` format for vector DB ingestion  
-Powered by sentence-transformers (`MiniLM-L6-v2`)  
+uses sentence-transformers (`MiniLM-L6-v2`)  
 Clean, modular Python backend (FastAPI)
 - Choose from multiple chunking strategies:
   - `fixed`, `header`, `semantic`, `swarax`
