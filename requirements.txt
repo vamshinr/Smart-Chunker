@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+sentence-transformers
+spacy
+PyMuPDF
+nltk
+tqdm
+chromadb
+faiss-cpu
+python-docx
